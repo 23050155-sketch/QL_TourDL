@@ -3,6 +3,7 @@
   box-sizing: border-box;
 }
 
+/* Thiết lập giao diện chung */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -10,6 +11,7 @@ body {
   background: #f8fafc;
 }
 
+/* Header và thanh điều hướng */
 .header {
   height: 76px;
   padding: 0 8%;
@@ -56,6 +58,7 @@ body {
   border-radius: 8px;
 }
 
+/* Banner trang chủ */
 .hero {
   min-height: 500px;
   display: flex;
@@ -97,6 +100,7 @@ body {
   font-weight: bold;
 }
 
+/* Khu vực giới thiệu tính năng */
 .features {
   padding: 65px 8%;
   text-align: center;
@@ -129,10 +133,12 @@ body {
   line-height: 1.6;
 }
 
+/* Nội dung các trang */
 .page-content {
   padding: 60px 8%;
 }
 
+/* Hiển thị trang chủ trên thiết bị nhỏ */
 @media (max-width: 768px) {
   .header {
     height: auto;
@@ -153,9 +159,7 @@ body {
 }
 
 
-
-
-
+/* Danh sách và thẻ tour */
 .tour-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -191,8 +195,77 @@ body {
   color: #0284c7;
 }
 
+/* Hiển thị danh sách tour trên thiết bị nhỏ */
 @media (max-width: 768px) {
   .tour-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Giao diện chung cho trang đăng ký và đăng nhập */
+.auth-page {
+  max-width: 440px;
+  margin: 60px auto;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.auth-page h2 {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-page input {
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.auth-page input:focus {
+  outline: 2px solid #0284c7;
+  outline-offset: 1px;
+}
+
+.auth-page button {
+  padding: 12px;
+  background: #0284c7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.auth-page button:hover {
+  background: #0369a1;
+}
+
+.auth-page button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-page [role="alert"] {
+  color: #dc2626;
+}
+
+.auth-page p {
+  text-align: center;
+  margin-top: 18px;
+}
+
+/* Tối ưu biểu mẫu đăng nhập và đăng ký trên điện thoại */
+@media (max-width: 480px) {
+  .auth-page {
+    margin: 24px 16px;
+    padding: 24px 20px;
   }
 }

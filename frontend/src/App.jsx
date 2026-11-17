@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Tours from "./pages/Tours";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 import "./App.css";
 
@@ -12,17 +14,12 @@ function App() {
     <BrowserRouter>
       <Header />
 
+      {/* Điều hướng giữa các trang của hệ thống */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/tours" element={<Tours />} />
-        <Route
-          path="/login"
-          element={<div className="page-content"><h1>Đăng nhập</h1></div>}
-        />
-        <Route
-          path="/register"
-          element={<div className="page-content"><h1>Đăng ký</h1></div>}
-        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
   );
