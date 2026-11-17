@@ -1,9 +1,10 @@
+
 import os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.engine import URL
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 load_dotenv()
 
@@ -13,7 +14,7 @@ DATABASE_URL = URL.create(
     password=os.getenv("DB_PASSWORD", ""),
     host=os.getenv("DB_HOST", "127.0.0.1"),
     port=int(os.getenv("DB_PORT", "3306")),
-    database=os.getenv("DB_NAME", "quan_ly_tour_du_lich"),
+    database=os.getenv("DB_NAME", "quan_ly_tour_du_lich")
 )
 
 engine = create_engine(
