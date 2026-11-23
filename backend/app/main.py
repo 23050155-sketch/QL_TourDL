@@ -13,6 +13,12 @@ from app.routers.tours import router as tours_router
 from app.routers.auth import router as auth_router
 
 
+from app.routers import tour_schedules
+from app.routers import bookings
+from app.routers import payments
+from app.routers import destinations
+from app.routers import tour_destinations
+
 # Khởi tạo ứng dụng FastAPI
 app = FastAPI(
     title="HTTT16 - Quan Ly Tour Du Lich",
@@ -44,6 +50,12 @@ app.include_router(tours_router)
 
 # Đăng ký các API đăng ký, đăng nhập và JWT
 app.include_router(auth_router)
+
+app.include_router(tour_schedules.router)
+app.include_router(bookings.router)
+app.include_router(payments.router)
+app.include_router(destinations.router)
+app.include_router(tour_destinations.router)
 
 
 # API kiểm tra Backend có hoạt động không
