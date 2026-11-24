@@ -11,6 +11,7 @@ from app.schemas.guide import (
     GuideCreate,
     GuideUpdate,
     GuideResponse,
+    GuidePublicResponse,
 )
 
 
@@ -20,13 +21,33 @@ router = APIRouter(
 )
 
 
-# 1. Xem danh sách hướng dẫn viên
+
+# 1. Xem danh sách hướng dẫn viên công khai
 @router.get(
     "/",
-    response_model=list[GuideResponse],
+    response_model=list[GuidePublicResponse],
 )
 def get_guides(
     db: Session = Depends(get_db),
+):
+    return (
+        db.query(TourGuide)
+        .filter(TourGuide.status == "active")
+        .order_by(TourGuide.id.desc())
+        .all()
+    )
+
+
+
+
+# ADMIN xem toàn bộ hướng dẫn viên
+@router.get(
+    "/admin/all",
+    response_model=list[GuideResponse],
+)
+def get_all_guides(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
 ):
     return (
         db.query(TourGuide)
@@ -35,14 +56,17 @@ def get_guides(
     )
 
 
-# 2. Xem chi tiết hướng dẫn viên
+
+
+# ADMIN xem chi tiết hướng dẫn viên
 @router.get(
-    "/{guide_id}",
+    "/admin/{guide_id}",
     response_model=GuideResponse,
 )
-def get_guide_detail(
+def admin_get_guide_detail(
     guide_id: int,
     db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
 ):
     guide = db.get(TourGuide, guide_id)
 
@@ -53,6 +77,37 @@ def get_guide_detail(
         )
 
     return guide
+
+
+
+
+
+# 2. Xem chi tiết hướng dẫn viên công khai
+@router.get(
+    "/{guide_id}",
+    response_model=GuidePublicResponse,
+)
+def get_guide_detail(
+    guide_id: int,
+    db: Session = Depends(get_db),
+):
+    guide = (
+        db.query(TourGuide)
+        .filter(
+            TourGuide.id == guide_id,
+            TourGuide.status == "active",
+        )
+        .first()
+    )
+
+    if not guide:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy hướng dẫn viên đang hoạt động",
+        )
+
+    return guide
+
 
 
 # 3. ADMIN thêm hướng dẫn viên

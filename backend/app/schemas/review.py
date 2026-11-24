@@ -1,37 +1,97 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    model_validator,
+)
+
+from app.core.validation import (
+    MAX_UNSIGNED_BIGINT,
+    MIN_REVIEW_RATING,
+    MAX_REVIEW_RATING,
+    MAX_REVIEW_COMMENT_LENGTH,
+)
 
 
 # Dữ liệu tạo đánh giá
 class ReviewCreate(BaseModel):
-    tour_id: int = Field(gt=0)
 
-    rating: int = Field(ge=1, le=5)
+    tour_id: int = Field(
+        strict=True,
+        ge=1,
+        le=MAX_UNSIGNED_BIGINT
+    )
+
+    rating: int = Field(
+        strict=True,
+        ge=MIN_REVIEW_RATING,
+        le=MAX_REVIEW_RATING
+    )
 
     comment: str | None = Field(
         default=None,
-        max_length=2000
+        max_length=MAX_REVIEW_COMMENT_LENGTH
+    )
+
+    model_config = ConfigDict(
+        extra="forbid"
     )
 
 
 # Dữ liệu cập nhật đánh giá
 class ReviewUpdate(BaseModel):
+
     rating: int | None = Field(
         default=None,
-        ge=1,
-        le=5
+        strict=True,
+        ge=MIN_REVIEW_RATING,
+        le=MAX_REVIEW_RATING
     )
 
     comment: str | None = Field(
         default=None,
-        max_length=2000
+        max_length=MAX_REVIEW_COMMENT_LENGTH
+    )
+
+    model_config = ConfigDict(
+        extra="forbid"
+    )
+
+    # Không cho phép cập nhật rating thành null
+    @model_validator(mode="after")
+    def validate_rating(self):
+
+        if (
+            "rating" in self.model_fields_set
+            and self.rating is None
+        ):
+            raise ValueError(
+                "Điểm đánh giá không được là null"
+            )
+
+        return self
+
+
+# Dữ liệu đánh giá công khai
+class ReviewPublicResponse(BaseModel):
+
+    id: int
+    tour_id: int
+    rating: int
+    comment: str | None = None
+    created_at: datetime | None = None
+
+    model_config = ConfigDict(
+        from_attributes=True
     )
 
 
 # Dữ liệu đánh giá trả về
 class ReviewResponse(BaseModel):
+
     id: int
     user_id: int
     tour_id: int
@@ -39,11 +99,14 @@ class ReviewResponse(BaseModel):
     comment: str | None = None
     created_at: datetime | None = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 # Dữ liệu thống kê đánh giá
 class ReviewSummary(BaseModel):
+
     tour_id: int
     average_rating: float
     total_reviews: int

@@ -73,8 +73,12 @@ def get_all_departures(
 
 
 
+
 # Lấy chi tiết lịch khởi hành đang mở
-@router.get("/{schedule_id}", response_model=TourScheduleResponse)
+@router.get(
+    "/{schedule_id}",
+    response_model=TourScheduleResponse
+)
 def get_departure_detail(
     schedule_id: int,
     db: Session = Depends(get_db),
@@ -86,6 +90,7 @@ def get_departure_detail(
             TourSchedule.id == schedule_id,
             TourSchedule.status == "open",
             Tour.status == "active",
+            TourSchedule.departure_date >= date.today(),
         )
         .first()
     )
@@ -97,6 +102,7 @@ def get_departure_detail(
         )
 
     return enrich_schedule(db, schedule)
+
 
 
 # ADMIN thêm lịch khởi hành

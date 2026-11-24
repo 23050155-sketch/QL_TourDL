@@ -18,3 +18,12 @@ dist/
 
 # Logs
 *.log
+
+# Python testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python cache
+*.pyo
+*.pyd

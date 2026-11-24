@@ -1,18 +1,27 @@
+
 from typing import Literal
-from app.schemas.auth import UserResponse
 
 from pydantic import BaseModel, Field, ConfigDict
 
+from app.schemas.auth import UserResponse
 
+from app.core.validation import (
+    MAX_FULL_NAME_LENGTH,
+    MAX_PHONE_LENGTH,
+)
+
+
+# Schema cập nhật thông tin cá nhân
 class ProfileUpdate(BaseModel):
+
     full_name: str = Field(
         min_length=2,
-        max_length=150
+        max_length=MAX_FULL_NAME_LENGTH
     )
 
     phone: str | None = Field(
         default=None,
-        max_length=20
+        max_length=MAX_PHONE_LENGTH
     )
 
     model_config = ConfigDict(
@@ -21,10 +30,9 @@ class ProfileUpdate(BaseModel):
     )
 
 
-
-
-
+# Schema đổi mật khẩu
 class ChangePasswordRequest(BaseModel):
+
     current_password: str = Field(
         min_length=1,
         max_length=128
@@ -45,11 +53,9 @@ class ChangePasswordRequest(BaseModel):
     )
 
 
-
-
-
 # Schema cập nhật trạng thái tài khoản
 class UserStatusUpdate(BaseModel):
+
     status: Literal["active", "inactive"]
 
     model_config = ConfigDict(
@@ -59,8 +65,10 @@ class UserStatusUpdate(BaseModel):
 
 # Schema danh sách khách hàng có phân trang
 class UserListResponse(BaseModel):
+
     total: int
     page: int
     page_size: int
     total_pages: int
+
     items: list[UserResponse]

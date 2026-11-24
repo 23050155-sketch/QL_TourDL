@@ -8,7 +8,12 @@ from app.database import get_db
 from app.models.booking import Booking
 from app.models.payment import Payment
 from app.models.user import User
-from app.routers.auth import get_current_user, require_admin
+
+from app.routers.auth import (
+    require_customer,
+    require_admin
+)
+
 from app.schemas.payment import (
     PaymentCreate,
     PaymentResponse,
@@ -22,6 +27,7 @@ router = APIRouter(
 )
 
 
+
 # 1. Khách hàng tạo yêu cầu thanh toán
 @router.post(
     "/",
@@ -31,35 +37,35 @@ router = APIRouter(
 def create_payment(
     data: PaymentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_customer),
 ):
     try:
-        # Khóa Booking để tránh tạo yêu cầu trùng
+        # Kiểm tra quyền sở hữu và khóa Booking
         booking = (
             db.query(Booking)
-            .filter(Booking.id == data.booking_id)
+            .filter(
+                Booking.id == data.booking_id,
+                Booking.user_id == current_user.id,
+            )
             .with_for_update()
             .first()
         )
 
+        # Không tìm thấy hoặc không thuộc sở hữu
         if not booking:
             raise HTTPException(
                 status_code=404,
                 detail="Không tìm thấy đơn đặt Tour",
             )
 
-        if booking.user_id != current_user.id:
-            raise HTTPException(
-                status_code=403,
-                detail="Bạn không có quyền thanh toán đơn này",
-            )
-
+        # Kiểm tra trạng thái đơn đặt Tour
         if booking.status != "awaiting_payment":
             raise HTTPException(
                 status_code=409,
                 detail="Đơn chưa được duyệt hoặc đã thanh toán",
             )
 
+        # Kiểm tra yêu cầu thanh toán đã tồn tại
         existing_payment = (
             db.query(Payment)
             .filter(
@@ -72,9 +78,13 @@ def create_payment(
         if existing_payment:
             raise HTTPException(
                 status_code=409,
-                detail="Đơn đã có yêu cầu thanh toán đang chờ hoặc đã thành công",
+                detail=(
+                    "Đơn đã có yêu cầu thanh toán "
+                    "đang chờ hoặc đã thành công"
+                ),
             )
 
+        # Tạo yêu cầu thanh toán
         payment = Payment(
             booking_id=booking.id,
             amount=booking.total_amount,
@@ -93,6 +103,7 @@ def create_payment(
         raise
 
 
+
 # 2. Khách hàng xem lịch sử thanh toán của mình
 @router.get(
     "/my",
@@ -100,7 +111,7 @@ def create_payment(
 )
 def get_my_payments(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_customer),
 ):
     return (
         db.query(Payment)

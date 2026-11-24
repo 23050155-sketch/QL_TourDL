@@ -1,0 +1,50 @@
+
+# Giới hạn kiểu dữ liệu MySQL
+MAX_UNSIGNED_BIGINT = 2**64 - 1
+MAX_SIGNED_INT = 2**31 - 1
+
+
+# Giới hạn thông tin cá nhân
+MAX_FULL_NAME_LENGTH = 150
+MAX_EMAIL_LENGTH = 190
+MAX_PHONE_LENGTH = 20
+
+
+# Giới hạn thông tin Tour
+MAX_TOUR_TITLE_LENGTH = 255
+MAX_TOUR_DURATION_DAYS = 365
+MAX_TOUR_DURATION_NIGHTS = 364
+MAX_DESCRIPTION_LENGTH = 10000
+MAX_IMAGE_URL_LENGTH = 500
+
+
+# Giới hạn lịch khởi hành
+MAX_SCHEDULE_CAPACITY = 1000
+
+
+# Giới hạn đặt Tour
+MAX_BOOKING_PEOPLE = 100
+
+
+# Giới hạn địa điểm
+MAX_DESTINATION_NAME_LENGTH = 150
+MAX_PROVINCE_LENGTH = 150
+
+
+# Giới hạn hướng dẫn viên
+MAX_GUIDE_EXPERIENCE_YEARS = 80
+
+
+# Giới hạn đánh giá
+MIN_REVIEW_RATING = 1
+MAX_REVIEW_RATING = 5
+MAX_REVIEW_COMMENT_LENGTH = 2000
+
+
+# Giới hạn thanh toán
+MAX_TRANSACTION_CODE_LENGTH = 150
+
+
+# Giới hạn tìm kiếm và phân trang
+MAX_SEARCH_LENGTH = 255
+MAX_PAGE_SIZE = 100

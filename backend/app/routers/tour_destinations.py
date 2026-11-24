@@ -24,11 +24,65 @@ class VisitOrderUpdate(BaseModel):
     visit_order: int = Field(ge=1)
 
 
-# 1. Xem danh sách địa điểm thuộc Tour
+
+# 1. Xem danh sách địa điểm thuộc Tour đang hoạt động
 @router.get("/{tour_id}/destinations")
 def get_tour_destinations(
     tour_id: int,
     db: Session = Depends(get_db),
+):
+    # Chỉ cho phép xem Tour đang hoạt động
+    tour = (
+        db.query(Tour)
+        .filter(
+            Tour.id == tour_id,
+            Tour.status == "active",
+        )
+        .first()
+    )
+
+    if not tour:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy Tour đang hoạt động",
+        )
+
+    rows = (
+        db.query(TourDestination, Destination)
+        .join(
+            Destination,
+            TourDestination.destination_id == Destination.id,
+        )
+        .filter(TourDestination.tour_id == tour_id)
+        .order_by(
+            TourDestination.visit_order.asc(),
+            TourDestination.destination_id.asc(),
+        )
+        .all()
+    )
+
+    return [
+        {
+            "tour_id": relation.tour_id,
+            "destination_id": destination.id,
+            "name": destination.name,
+            "province": destination.province,
+            "description": destination.description,
+            "image_url": destination.image_url,
+            "visit_order": relation.visit_order,
+        }
+        for relation, destination in rows
+    ]
+
+
+
+
+# ADMIN xem địa điểm của mọi Tour
+@router.get("/admin/{tour_id}/destinations")
+def admin_get_tour_destinations(
+    tour_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
 ):
     tour = db.get(Tour, tour_id)
 
@@ -64,6 +118,8 @@ def get_tour_destinations(
         }
         for relation, destination in rows
     ]
+
+
 
 
 # 2. ADMIN thêm địa điểm vào Tour

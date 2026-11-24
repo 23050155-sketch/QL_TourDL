@@ -1,11 +1,19 @@
 
-from sqlalchemy import Column, String, Enum, TIMESTAMP, text
-from sqlalchemy.dialects.mysql import BIGINT
+from sqlalchemy import (
+    Column,
+    String,
+    Enum,
+    TIMESTAMP,
+    text
+)
+
+from sqlalchemy.dialects.mysql import BIGINT, INTEGER
 
 from app.database import Base
 
 
 class User(Base):
+
     __tablename__ = "users"
 
     id = Column(
@@ -14,7 +22,10 @@ class User(Base):
         autoincrement=True
     )
 
-    full_name = Column(String(150), nullable=False)
+    full_name = Column(
+        String(150),
+        nullable=False
+    )
 
     email = Column(
         String(190),
@@ -39,6 +50,14 @@ class User(Base):
         Enum("active", "inactive"),
         nullable=False,
         default="active"
+    )
+
+    # Phiên bản JWT của tài khoản
+    token_version = Column(
+        INTEGER(unsigned=True),
+        nullable=False,
+        default=1,
+        server_default=text("1")
     )
 
     created_at = Column(

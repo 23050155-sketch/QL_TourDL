@@ -14,6 +14,7 @@ from app.models.tour_schedule import TourSchedule
 from app.routers.auth import (
     get_current_user,
     require_admin,
+    require_customer
 )
 
 from app.schemas.review import (
@@ -21,6 +22,7 @@ from app.schemas.review import (
     ReviewUpdate,
     ReviewResponse,
     ReviewSummary,
+    ReviewPublicResponse,
 )
 
 
@@ -30,34 +32,28 @@ router = APIRouter(
 )
 
 
-# Kiểm tra quyền CUSTOMER
-def require_customer(
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.role != "customer":
-        raise HTTPException(
-            status_code=403,
-            detail="Chỉ khách hàng mới được thực hiện chức năng này",
-        )
-
-    return current_user
-
-
 # 1. Xem danh sách đánh giá của Tour
 @router.get(
     "/tour/{tour_id}",
-    response_model=list[ReviewResponse],
+    response_model=list[ReviewPublicResponse]
 )
 def get_tour_reviews(
     tour_id: int,
     db: Session = Depends(get_db),
 ):
-    tour = db.get(Tour, tour_id)
+    tour = (
+        db.query(Tour)
+        .filter(
+            Tour.id == tour_id,
+            Tour.status == "active",
+        )
+        .first()
+    )
 
     if not tour:
         raise HTTPException(
             status_code=404,
-            detail="Không tìm thấy Tour",
+            detail="Không tìm thấy Tour đang hoạt động",
         )
 
     return (
@@ -77,12 +73,19 @@ def get_review_summary(
     tour_id: int,
     db: Session = Depends(get_db),
 ):
-    tour = db.get(Tour, tour_id)
+    tour = (
+        db.query(Tour)
+        .filter(
+            Tour.id == tour_id,
+            Tour.status == "active",
+        )
+        .first()
+    )
 
     if not tour:
         raise HTTPException(
             status_code=404,
-            detail="Không tìm thấy Tour",
+            detail="Không tìm thấy Tour đang hoạt động",
         )
 
     rows = (
@@ -235,6 +238,7 @@ def create_review(
     return review
 
 
+
 # 6. CUSTOMER cập nhật đánh giá của mình
 @router.put(
     "/{review_id}",
@@ -246,7 +250,15 @@ def update_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_customer),
 ):
-    review = db.get(Review, review_id)
+    # Kiểm tra quyền sở hữu đánh giá
+    review = (
+        db.query(Review)
+        .filter(
+            Review.id == review_id,
+            Review.user_id == current_user.id,
+        )
+        .first()
+    )
 
     if not review:
         raise HTTPException(
@@ -254,29 +266,36 @@ def update_review(
             detail="Không tìm thấy đánh giá",
         )
 
-    if review.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="Bạn không có quyền sửa đánh giá này",
-        )
-
+    # Chỉ lấy các trường được gửi lên
     update_data = data.model_dump(
         exclude_unset=True
     )
 
-    if "rating" in update_data and update_data["rating"] is None:
+    # Không cho phép điểm đánh giá bằng NULL
+    if (
+        "rating" in update_data
+        and update_data["rating"] is None
+    ):
         raise HTTPException(
             status_code=422,
             detail="Điểm đánh giá không được để trống",
         )
 
-    for field, value in update_data.items():
-        setattr(review, field, value)
+    # Chỉ cập nhật các trường được phép
+    for field in ("rating", "comment"):
+        if field in update_data:
+            setattr(
+                review,
+                field,
+                update_data[field]
+            )
 
     db.commit()
     db.refresh(review)
 
     return review
+
+
 
 
 # 7. Xóa đánh giá
@@ -286,7 +305,28 @@ def delete_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    review = db.get(Review, review_id)
+    # Truy vấn đánh giá theo ID
+    query = db.query(Review).filter(
+        Review.id == review_id
+    )
+
+    # Phân quyền theo vai trò
+    if current_user.role == "customer":
+
+        # CUSTOMER chỉ được xóa đánh giá của mình
+        query = query.filter(
+            Review.user_id == current_user.id
+        )
+
+    elif current_user.role != "admin":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Bạn không có quyền thực hiện chức năng này",
+        )
+
+    # Lấy đánh giá phù hợp với quyền truy cập
+    review = query.first()
 
     if not review:
         raise HTTPException(
@@ -294,15 +334,7 @@ def delete_review(
             detail="Không tìm thấy đánh giá",
         )
 
-    if (
-        current_user.role != "admin"
-        and review.user_id != current_user.id
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="Bạn không có quyền xóa đánh giá này",
-        )
-
+    # Xóa đánh giá
     db.delete(review)
     db.commit()
 
@@ -310,3 +342,4 @@ def delete_review(
         "message": "Xóa đánh giá thành công",
         "id": review_id,
     }
+

@@ -1,3 +1,7 @@
+from fastapi import Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
 
 # Import FastAPI để xây dựng các API
 from fastapi import FastAPI, HTTPException
@@ -23,6 +27,7 @@ from app.routers import guide_assignments
 from app.routers import reviews
 from app.routers import dashboard
 from app.routers import users
+from app.core.config import settings
 
 
 # Khởi tạo ứng dụng FastAPI
@@ -33,12 +38,39 @@ app = FastAPI(
 )
 
 
+
+# Xử lý lỗi kiểm tra dữ liệu đầu vào
+# Không trả về dữ liệu nhạy cảm trong phản hồi lỗi
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError
+):
+    errors = []
+
+    for error in exc.errors():
+
+        errors.append({
+            "loc": error.get("loc", []),
+            "msg": "Dữ liệu đầu vào không hợp lệ",
+            "type": error.get("type", "validation_error")
+        })
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": errors
+        }
+    )
+
+
+
 # Cấu hình CORS để ReactJS truy cập Backend
 app.add_middleware(
     CORSMiddleware,
 
     # Địa chỉ Frontend Vite
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.CORS_ORIGINS,
 
     # Cho phép gửi thông tin xác thực khi cần
     allow_credentials=True,

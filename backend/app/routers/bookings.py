@@ -10,9 +10,25 @@ from app.models.booking import Booking, BookingPassenger
 from app.models.tour import Tour
 from app.models.tour_schedule import TourSchedule
 from app.models.user import User
-from app.schemas.booking import BookingCreate, BookingResponse
-from app.routers.auth import get_current_user
-from app.routers.auth import require_admin
+
+from app.schemas.booking import (
+    BookingCreate,
+    BookingResponse,
+    BookingListResponse,
+)
+
+from app.routers.auth import (
+    require_admin,
+    require_customer
+)
+
+from app.models.guide import (
+    TourGuide,
+    GuideAssignment,
+)
+
+from app.schemas.guide import GuideContactResponse
+
 from app.services.availability import get_booked_slots
 
 
@@ -30,7 +46,7 @@ router = APIRouter(prefix="/api/bookings", tags=["Bookings"])
 def create_booking(
     data: BookingCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_customer),
 ):
     if len(data.passengers) != data.number_of_people:
         raise HTTPException(
@@ -125,14 +141,16 @@ def create_booking(
 
 
 # Khách hàng xem các đơn đặt Tour của mình
-@router.get("/my", response_model=list[BookingResponse])
+@router.get(
+    "/my",
+    response_model=list[BookingListResponse]
+)
 def get_my_bookings(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_customer),
 ):
     return (
         db.query(Booking)
-        .options(selectinload(Booking.passengers))
         .filter(Booking.user_id == current_user.id)
         .order_by(Booking.id.desc())
         .all()
@@ -143,7 +161,7 @@ def get_my_bookings(
 # ADMIN xem tất cả đơn đặt Tour
 @router.get(
     "/admin/all",
-    response_model=list[BookingResponse],
+    response_model=list[BookingListResponse]
 )
 def admin_get_all_bookings(
     db: Session = Depends(get_db),
@@ -151,7 +169,6 @@ def admin_get_all_bookings(
 ):
     return (
         db.query(Booking)
-        .options(selectinload(Booking.passengers))
         .order_by(Booking.id.desc())
         .all()
     )
@@ -287,7 +304,7 @@ def admin_reject_booking(
 def get_booking_detail(
     booking_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_customer),
 ):
     booking = (
         db.query(Booking)
@@ -319,7 +336,7 @@ def get_booking_detail(
 def cancel_my_booking(
     booking_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_customer),
 ):
     try:
         booking = (
@@ -459,3 +476,63 @@ def admin_complete_booking(
         .filter(Booking.id == booking_id)
         .one()
     )
+    
+    
+
+
+# CUSTOMER xem thông tin HDV của Booking đã thanh toán
+@router.get(
+    "/{booking_id}/guides",
+    response_model=list[GuideContactResponse],
+)
+def get_booking_guides(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_customer),
+):
+    # 1. Kiểm tra quyền sở hữu Booking
+    booking = (
+        db.query(Booking)
+        .filter(
+            Booking.id == booking_id,
+            Booking.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not booking:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy đơn đặt Tour",
+        )
+
+    # 2. Kiểm tra trạng thái thanh toán
+    if booking.status != "paid":
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Chỉ được xem thông tin liên hệ "
+                "hướng dẫn viên khi đơn đã thanh toán "
+                "và chưa hoàn thành"
+            ),
+        )
+
+    # 3. Lấy hướng dẫn viên được phân công
+    guides = (
+        db.query(TourGuide)
+        .join(
+            GuideAssignment,
+            GuideAssignment.guide_id == TourGuide.id,
+        )
+        .filter(
+            GuideAssignment.schedule_id
+            == booking.schedule_id,
+            TourGuide.status == "active",
+        )
+        .order_by(TourGuide.id.asc())
+        .all()
+    )
+
+    # 4. Trả về thông tin liên hệ
+    return guides
+

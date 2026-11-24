@@ -26,6 +26,11 @@ from app.routers.auth import (
     require_admin
 )
 
+from app.services.user_security import (
+    lock_user,
+    revoke_user_tokens
+)
+
 
 router = APIRouter(
     prefix="/api/users",
@@ -61,49 +66,85 @@ def update_my_profile(
 
 
 # Đổi mật khẩu tài khoản cá nhân
+
 @router.put("/me/change-password")
 def change_password(
     data: ChangePasswordRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # 1. Kiểm tra mật khẩu hiện tại
+
+    # Lưu phiên bản đã được xác thực
+    authenticated_version = current_user.token_version
+
+    # Khóa bản ghi tài khoản
+    user = lock_user(
+        db,
+        current_user.id
+    )
+
+    # Kiểm tra lại trạng thái và phiên bản
+    if (
+        user is None
+        or user.status != "active"
+        or user.token_version != authenticated_version
+    ):
+
+        raise HTTPException(
+            status_code=401,
+            detail="Phiên đăng nhập không còn hợp lệ",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            }
+        )
+
+    # Kiểm tra mật khẩu hiện tại
     if not verify_password(
         data.current_password,
-        current_user.password_hash
+        user.password_hash
     ):
+
         raise HTTPException(
             status_code=400,
             detail="Mật khẩu hiện tại không chính xác"
         )
 
-    # 2. Kiểm tra xác nhận mật khẩu mới
+    # Kiểm tra xác nhận mật khẩu
     if data.new_password != data.confirm_password:
+
         raise HTTPException(
             status_code=400,
             detail="Xác nhận mật khẩu không khớp"
         )
 
-    # 3. Không cho phép sử dụng lại mật khẩu hiện tại
+    # Không cho phép sử dụng lại mật khẩu hiện tại
     if verify_password(
         data.new_password,
-        current_user.password_hash
+        user.password_hash
     ):
+
         raise HTTPException(
             status_code=400,
-            detail="Mật khẩu mới không được trùng mật khẩu hiện tại"
+            detail=(
+                "Mật khẩu mới không được trùng "
+                "mật khẩu hiện tại"
+            )
         )
 
-    # 4. Băm mật khẩu mới
-    current_user.password_hash = hash_password(
+    # Băm mật khẩu mới
+    user.password_hash = hash_password(
         data.new_password
     )
 
-    # 5. Lưu thay đổi vào MySQL
+    # Thu hồi tất cả JWT cũ
+    revoke_user_tokens(user)
+
+    # Lưu cả mật khẩu và phiên bản Token
     db.commit()
 
     return {
-        "message": "Đổi mật khẩu thành công"
+        "message": "Đổi mật khẩu thành công",
+        "require_login": True
     }
 
 
@@ -219,6 +260,7 @@ def get_customer_detail(
 
 
 # ADMIN cập nhật trạng thái khách hàng
+
 @router.patch(
     "/{user_id}/status",
     response_model=UserResponse
@@ -229,26 +271,37 @@ def update_customer_status(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
-    customer = (
-        db.query(User)
-        .filter(
-            User.id == user_id,
-            User.role == "customer"
-        )
-        .first()
+
+    # Khóa bản ghi tài khoản cần cập nhật
+    customer = lock_user(
+        db,
+        user_id
     )
 
-    if not customer:
+    # Chỉ cho phép quản lý CUSTOMER
+    if (
+        customer is None
+        or customer.role != "customer"
+    ):
+
         raise HTTPException(
             status_code=404,
             detail="Không tìm thấy khách hàng"
         )
 
-    # Cập nhật trạng thái
-    customer.status = data.status
+    # Chỉ cập nhật khi trạng thái thay đổi
+    if customer.status != data.status:
 
+        customer.status = data.status
+
+        # Thu hồi toàn bộ JWT cũ
+        revoke_user_tokens(customer)
+
+    # Lưu thay đổi
     db.commit()
+
     db.refresh(customer)
 
     return customer
+
 
