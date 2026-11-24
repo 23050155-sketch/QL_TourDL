@@ -3,7 +3,6 @@ from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
@@ -14,17 +13,12 @@ from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse
 from app.routers.auth import get_current_user
 from app.routers.auth import require_admin
+from app.services.availability import get_booked_slots
 
 
 
 router = APIRouter(prefix="/api/bookings", tags=["Bookings"])
 
-OCCUPIED_STATUSES = (
-    "pending",
-    "awaiting_payment",
-    "paid",
-    "completed",
-)
 
 
 # Tạo đơn đặt Tour và kiểm tra sức chứa trong transaction
@@ -79,21 +73,16 @@ def create_booking(
                 detail="Tour không còn hoạt động",
             )
 
-        booked = (
-            db.query(
-                func.coalesce(
-                    func.sum(Booking.number_of_people),
-                    0,
-                )
-            )
-            .filter(
-                Booking.schedule_id == schedule.id,
-                Booking.status.in_(OCCUPIED_STATUSES),
-            )
-            .scalar()
+        booked = get_booked_slots(
+            db,
+            schedule.id,
+            lock=True
         )
 
-        remaining = schedule.capacity - int(booked)
+        remaining = max(
+            0,
+            schedule.capacity - booked
+        )
 
         if data.number_of_people > remaining:
             raise HTTPException(

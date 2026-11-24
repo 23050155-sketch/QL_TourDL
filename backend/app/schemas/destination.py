@@ -50,3 +50,4 @@ class TourDestinationResponse(BaseModel):
     visit_order: int
 
     model_config = ConfigDict(from_attributes=True)
+    

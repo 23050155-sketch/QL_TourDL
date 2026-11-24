@@ -31,9 +31,18 @@ class TourScheduleUpdate(TourScheduleBase):
     status: Literal["open", "closed", "cancelled"]
 
 
+
 # Dữ liệu trả về cho Frontend
 class TourScheduleResponse(TourScheduleBase):
     id: int
     status: str
 
-    model_config = ConfigDict(from_attributes=True)
+    booked_slots: int = Field(ge=0)
+    remaining_slots: int = Field(ge=0)
+    is_full: bool
+    is_bookable: bool
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+

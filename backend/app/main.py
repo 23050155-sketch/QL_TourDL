@@ -18,6 +18,12 @@ from app.routers import bookings
 from app.routers import payments
 from app.routers import destinations
 from app.routers import tour_destinations
+from app.routers import guides
+from app.routers import guide_assignments
+from app.routers import reviews
+from app.routers import dashboard
+from app.routers import users
+
 
 # Khởi tạo ứng dụng FastAPI
 app = FastAPI(
@@ -56,6 +62,11 @@ app.include_router(bookings.router)
 app.include_router(payments.router)
 app.include_router(destinations.router)
 app.include_router(tour_destinations.router)
+app.include_router(guides.router)
+app.include_router(guide_assignments.router)
+app.include_router(reviews.router)
+app.include_router(dashboard.router)
+app.include_router(users.router)
 
 
 # API kiểm tra Backend có hoạt động không

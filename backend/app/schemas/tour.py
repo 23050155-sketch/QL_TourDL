@@ -40,3 +40,21 @@ class TourResponse(BaseModel):
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+    
+
+
+
+# Thông tin Tour kèm thống kê đánh giá
+class TourSearchItem(TourResponse):
+    average_rating: float = 0.0
+    total_reviews: int = 0
+
+
+# Kết quả tìm kiếm Tour có phân trang
+class TourSearchResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: list[TourSearchItem]
+
