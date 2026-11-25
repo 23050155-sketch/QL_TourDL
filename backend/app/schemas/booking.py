@@ -17,9 +17,16 @@ from app.core.validation import (
     MAX_PHONE_LENGTH,
 )
 
+from app.core.normalization import (
+    normalize_single_line,
+    normalize_phone,
+    validate_phone_format,
+)
+
 
 # Dữ liệu của một hành khách
 class PassengerCreate(BaseModel):
+
     full_name: str = Field(
         min_length=2,
         max_length=MAX_FULL_NAME_LENGTH
@@ -33,6 +40,24 @@ class PassengerCreate(BaseModel):
     )
 
     model_config = ConfigDict(extra="forbid")
+
+    # Chuẩn hóa họ tên hành khách
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def normalize_full_name(cls, value):
+        return normalize_single_line(value)
+
+    # Chuẩn hóa số điện thoại
+    @field_validator("phone", mode="before")
+    @classmethod
+    def normalize_phone_input(cls, value):
+        return normalize_phone(value)
+
+    # Kiểm tra định dạng số điện thoại
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value):
+        return validate_phone_format(value)
 
     # Kiểm tra ngày sinh không nằm trong tương lai
     @field_validator("date_of_birth")
@@ -48,6 +73,7 @@ class PassengerCreate(BaseModel):
 
 # Dữ liệu khách hàng gửi khi đặt Tour
 class BookingCreate(BaseModel):
+
     schedule_id: int = Field(
         strict=True,
         ge=1,
@@ -81,7 +107,9 @@ class BookingCreate(BaseModel):
 
 # Thông tin hành khách trả về
 class PassengerResponse(BaseModel):
+
     id: int
+
     full_name: str = Field(
         min_length=2,
         max_length=MAX_FULL_NAME_LENGTH
@@ -102,6 +130,7 @@ class PassengerResponse(BaseModel):
 
 # Thông tin tổng quan đơn đặt Tour
 class BookingListResponse(BaseModel):
+
     id: int
     user_id: int
     schedule_id: int
@@ -118,4 +147,5 @@ class BookingListResponse(BaseModel):
 
 # Thông tin chi tiết đơn đặt Tour
 class BookingResponse(BookingListResponse):
+
     passengers: list[PassengerResponse]

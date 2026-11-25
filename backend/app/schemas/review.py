@@ -5,6 +5,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    field_validator,
     model_validator,
 )
 
@@ -13,6 +14,10 @@ from app.core.validation import (
     MIN_REVIEW_RATING,
     MAX_REVIEW_RATING,
     MAX_REVIEW_COMMENT_LENGTH,
+)
+
+from app.core.normalization import (
+    normalize_optional_multiline,
 )
 
 
@@ -40,6 +45,12 @@ class ReviewCreate(BaseModel):
         extra="forbid"
     )
 
+    # Chuẩn hóa nội dung bình luận
+    @field_validator("comment", mode="before")
+    @classmethod
+    def normalize_comment(cls, value):
+        return normalize_optional_multiline(value)
+
 
 # Dữ liệu cập nhật đánh giá
 class ReviewUpdate(BaseModel):
@@ -59,6 +70,12 @@ class ReviewUpdate(BaseModel):
     model_config = ConfigDict(
         extra="forbid"
     )
+
+    # Chuẩn hóa nội dung bình luận
+    @field_validator("comment", mode="before")
+    @classmethod
+    def normalize_comment(cls, value):
+        return normalize_optional_multiline(value)
 
     # Không cho phép cập nhật rating thành null
     @model_validator(mode="after")

@@ -32,6 +32,21 @@ from app.services.user_security import (
 )
 
 
+
+from app.core.validation import (
+    MAX_USER_SEARCH_LENGTH,
+    MAX_PAGE_SIZE,
+    MAX_PAGE_NUMBER,
+)
+
+from app.core.search_validation import (
+    normalize_search_keyword,
+    validate_pagination,
+    calculate_total_pages,
+)
+
+
+
 router = APIRouter(
     prefix="/api/users",
     tags=["Users"]
@@ -151,6 +166,7 @@ def change_password(
 
 
 
+
 # ADMIN xem danh sách khách hàng
 @router.get(
     "/",
@@ -159,55 +175,78 @@ def change_password(
 def get_customers(
     search: str | None = Query(
         default=None,
-        max_length=150
+        max_length=MAX_USER_SEARCH_LENGTH
     ),
-    status: Literal["active", "inactive"] | None = None,
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=10, ge=1, le=100),
+    status: Literal[
+        "active",
+        "inactive"
+    ] | None = None,
+    page: int = Query(
+        default=1,
+        ge=1,
+        le=MAX_PAGE_NUMBER
+    ),
+    page_size: int = Query(
+        default=10,
+        ge=1,
+        le=MAX_PAGE_SIZE
+    ),
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin)
 ):
-    # Chỉ lấy tài khoản CUSTOMER
+
+    # 1. Kiểm tra phân trang
+    offset = validate_pagination(
+        page,
+        page_size
+    )
+
+    # 2. Chuẩn hóa từ khóa tìm kiếm
+    keyword = normalize_search_keyword(
+        search,
+        max_length=MAX_USER_SEARCH_LENGTH
+    )
+
+    # 3. Chỉ lấy tài khoản CUSTOMER
     query = db.query(User).filter(
         User.role == "customer"
     )
 
-    # Tìm kiếm theo tên, email hoặc số điện thoại
-    if search and search.strip():
-        keyword = search.strip()
-
+    # 4. Tìm kiếm theo họ tên, email và số điện thoại
+    if keyword is not None:
         query = query.filter(
             or_(
                 User.full_name.contains(
-                    keyword, autoescape=True
+                    keyword,
+                    autoescape=True
                 ),
                 User.email.contains(
-                    keyword, autoescape=True
+                    keyword,
+                    autoescape=True
                 ),
                 User.phone.contains(
-                    keyword, autoescape=True
+                    keyword,
+                    autoescape=True
                 )
             )
         )
 
-    # Lọc theo trạng thái tài khoản
+    # 5. Lọc theo trạng thái tài khoản
     if status is not None:
         query = query.filter(
             User.status == status
         )
 
-    # Đếm tổng số bản ghi sau khi lọc
+    # 6. Đếm tổng số bản ghi sau khi lọc
     total = query.count()
 
-    # Tính tổng số trang
-    total_pages = (
-        total + page_size - 1
-    ) // page_size
+    # 7. Tính tổng số trang
+    total_pages = calculate_total_pages(
+        total,
+        page_size
+    )
 
-    # Tính số bản ghi cần bỏ qua
-    offset = (page - 1) * page_size
-
-    # Lấy dữ liệu theo trang
+    # 8. Lấy dữ liệu theo trang
     customers = (
         query
         .order_by(User.id.desc())
@@ -216,6 +255,7 @@ def get_customers(
         .all()
     )
 
+    # 9. Trả về kết quả
     return {
         "total": total,
         "page": page,
@@ -223,6 +263,7 @@ def get_customers(
         "total_pages": total_pages,
         "items": customers
     }
+
 
 
 

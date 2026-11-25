@@ -1,13 +1,24 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import (
+    BaseModel,
+    Field,
+    ConfigDict,
+    field_validator,
+)
 
 from app.schemas.auth import UserResponse
 
 from app.core.validation import (
     MAX_FULL_NAME_LENGTH,
     MAX_PHONE_LENGTH,
+)
+
+from app.core.normalization import (
+    normalize_single_line,
+    normalize_phone,
+    validate_phone_format,
 )
 
 
@@ -25,9 +36,26 @@ class ProfileUpdate(BaseModel):
     )
 
     model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True
+        extra="forbid"
     )
+
+    # Chuẩn hóa họ tên
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def normalize_full_name(cls, value):
+        return normalize_single_line(value)
+
+    # Chuẩn hóa số điện thoại
+    @field_validator("phone", mode="before")
+    @classmethod
+    def normalize_phone_input(cls, value):
+        return normalize_phone(value)
+
+    # Kiểm tra định dạng số điện thoại
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value):
+        return validate_phone_format(value)
 
 
 # Schema đổi mật khẩu

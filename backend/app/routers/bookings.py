@@ -31,7 +31,10 @@ from app.schemas.guide import GuideContactResponse
 
 from app.services.availability import get_booked_slots
 
-
+from app.core.money_validation import (
+    validate_money_amount,
+    calculate_booking_total,
+)
 
 router = APIRouter(prefix="/api/bookings", tags=["Bookings"])
 
@@ -106,8 +109,27 @@ def create_booking(
                 detail=f"Không đủ chỗ. Hiện còn {remaining} chỗ",
             )
 
-        unit_price = Decimal(str(tour.base_price))
-        total_amount = unit_price * data.number_of_people
+        
+        # Kiểm tra đơn giá và giới hạn tổng tiền
+        try:
+            unit_price = validate_money_amount(
+                tour.base_price
+            )
+
+            total_amount = calculate_booking_total(
+                unit_price,
+                data.number_of_people,
+            )
+
+        except ValueError:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Đơn giá hoặc tổng tiền đặt Tour "
+                    "không nằm trong giới hạn cho phép"
+                ),
+            ) from None
+
 
         booking = Booking(
             user_id=current_user.id,

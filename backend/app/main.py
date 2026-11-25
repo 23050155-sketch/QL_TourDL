@@ -39,6 +39,26 @@ app = FastAPI(
 
 
 
+# Bổ sung HTTP Security Headers
+@app.middleware("http")
+async def add_security_headers(
+    request: Request,
+    call_next
+):
+
+    # Tiếp tục xử lý Request
+    response = await call_next(request)
+
+    # Không cho trình duyệt tự suy đoán kiểu nội dung
+    response.headers[
+        "X-Content-Type-Options"
+    ] = "nosniff"
+
+    return response
+
+
+
+
 # Xử lý lỗi kiểm tra dữ liệu đầu vào
 # Không trả về dữ liệu nhạy cảm trong phản hồi lỗi
 @app.exception_handler(RequestValidationError)

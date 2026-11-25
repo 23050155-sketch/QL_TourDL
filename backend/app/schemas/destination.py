@@ -5,6 +5,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    field_validator,
     model_validator,
 )
 
@@ -17,9 +18,17 @@ from app.core.validation import (
     MAX_IMAGE_URL_LENGTH,
 )
 
+from app.core.normalization import (
+    normalize_single_line,
+    normalize_optional_multiline,
+    normalize_optional_url,
+    validate_image_url,
+)
+
 
 # Dữ liệu tạo địa điểm
 class DestinationCreate(BaseModel):
+
     name: str = Field(
         min_length=2,
         max_length=MAX_DESTINATION_NAME_LENGTH
@@ -42,9 +51,34 @@ class DestinationCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    # Chuẩn hóa tên địa điểm và tỉnh thành
+    @field_validator("name", "province", mode="before")
+    @classmethod
+    def normalize_name_and_province(cls, value):
+        return normalize_single_line(value)
+
+    # Chuẩn hóa mô tả
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, value):
+        return normalize_optional_multiline(value)
+
+    # Chuẩn hóa URL hình ảnh
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def normalize_image_url_input(cls, value):
+        return normalize_optional_url(value)
+
+    # Kiểm tra URL hình ảnh
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url_input(cls, value):
+        return validate_image_url(value)
+
 
 # Dữ liệu cập nhật địa điểm
 class DestinationUpdate(BaseModel):
+
     name: str | None = Field(
         default=None,
         min_length=2,
@@ -69,6 +103,30 @@ class DestinationUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    # Chuẩn hóa tên địa điểm và tỉnh thành
+    @field_validator("name", "province", mode="before")
+    @classmethod
+    def normalize_name_and_province(cls, value):
+        return normalize_single_line(value)
+
+    # Chuẩn hóa mô tả
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, value):
+        return normalize_optional_multiline(value)
+
+    # Chuẩn hóa URL hình ảnh
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def normalize_image_url_input(cls, value):
+        return normalize_optional_url(value)
+
+    # Kiểm tra URL hình ảnh
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url_input(cls, value):
+        return validate_image_url(value)
+
     # Không cho phép cập nhật trường bắt buộc thành null
     @model_validator(mode="after")
     def validate_required_fields(self):
@@ -88,6 +146,7 @@ class DestinationUpdate(BaseModel):
 
 # Thông tin địa điểm trả về
 class DestinationResponse(BaseModel):
+
     id: int
 
     name: str = Field(
@@ -116,6 +175,7 @@ class DestinationResponse(BaseModel):
 
 # Dữ liệu thêm địa điểm vào Tour
 class TourDestinationCreate(BaseModel):
+
     destination_id: int = Field(
         strict=True,
         ge=1,
@@ -134,6 +194,7 @@ class TourDestinationCreate(BaseModel):
 
 # Thông tin địa điểm thuộc Tour
 class TourDestinationResponse(BaseModel):
+
     tour_id: int
     destination_id: int
     visit_order: int

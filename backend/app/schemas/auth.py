@@ -15,6 +15,13 @@ from app.core.validation import (
     MAX_PHONE_LENGTH,
 )
 
+from app.core.normalization import (
+    normalize_single_line,
+    normalize_email,
+    normalize_phone,
+    validate_phone_format,
+)
+
 
 # Schema đăng ký tài khoản
 class RegisterRequest(BaseModel):
@@ -38,16 +45,19 @@ class RegisterRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    # Loại bỏ khoảng trắng thừa trong họ tên
+    # Chuẩn hóa họ tên
     @field_validator("full_name", mode="before")
     @classmethod
     def normalize_full_name(cls, value):
-        if isinstance(value, str):
-            return value.strip()
+        return normalize_single_line(value)
 
-        return value
+    # Chuẩn hóa email trước khi kiểm tra
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email_input(cls, value):
+        return normalize_email(value)
 
-    # Kiểm tra độ dài email sau khi chuẩn hóa
+    # Kiểm tra giới hạn email
     @field_validator("email")
     @classmethod
     def validate_email_length(cls, value):
@@ -58,6 +68,18 @@ class RegisterRequest(BaseModel):
             )
 
         return value
+
+    # Chuẩn hóa số điện thoại
+    @field_validator("phone", mode="before")
+    @classmethod
+    def normalize_phone_input(cls, value):
+        return normalize_phone(value)
+
+    # Kiểm tra định dạng số điện thoại
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value):
+        return validate_phone_format(value)
 
 
 # Schema đăng nhập
@@ -72,6 +94,13 @@ class LoginRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    # Chuẩn hóa email đăng nhập
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email_input(cls, value):
+        return normalize_email(value)
+
+    # Kiểm tra giới hạn email
     @field_validator("email")
     @classmethod
     def validate_email_length(cls, value):
@@ -95,7 +124,9 @@ class UserResponse(BaseModel):
     status: str
     created_at: datetime | None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 # Schema dữ liệu JWT trả về

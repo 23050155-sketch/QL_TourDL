@@ -21,6 +21,12 @@ from app.schemas.payment import (
 )
 
 
+from app.core.money_validation import (
+    validate_money_amount,
+    validate_booking_amount,
+)
+
+
 router = APIRouter(
     prefix="/api/payments",
     tags=["Payments"],
@@ -84,13 +90,32 @@ def create_payment(
                 ),
             )
 
+        
+        # Kiểm tra tính hợp lệ của số tiền Booking
+        try:
+            amount = validate_booking_amount(
+                unit_price=booking.unit_price,
+                number_of_people=booking.number_of_people,
+                total_amount=booking.total_amount,
+            )
+
+        except ValueError:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Số tiền của đơn đặt Tour "
+                    "không hợp lệ hoặc không nhất quán"
+                ),
+            ) from None
+
         # Tạo yêu cầu thanh toán
         payment = Payment(
             booking_id=booking.id,
-            amount=booking.total_amount,
+            amount=amount,
             payment_method=data.payment_method,
             status="pending",
         )
+
 
         db.add(payment)
         db.commit()
@@ -183,11 +208,38 @@ def admin_confirm_payment(
                 detail="Đơn đặt Tour không ở trạng thái chờ thanh toán",
             )
 
-        if payment.amount != booking.total_amount:
+        
+        # Kiểm tra tính hợp lệ của số tiền
+        try:
+            booking_amount = validate_booking_amount(
+                unit_price=booking.unit_price,
+                number_of_people=booking.number_of_people,
+                total_amount=booking.total_amount,
+            )
+
+            payment_amount = validate_money_amount(
+                payment.amount
+            )
+
+        except ValueError:
             raise HTTPException(
                 status_code=409,
-                detail="Số tiền thanh toán không khớp với đơn đặt Tour",
+                detail=(
+                    "Dữ liệu số tiền thanh toán "
+                    "không hợp lệ"
+                ),
+            ) from None
+
+        # Đảm bảo số tiền Payment khớp với Booking
+        if payment_amount != booking_amount:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Số tiền thanh toán không khớp "
+                    "với đơn đặt Tour"
+                ),
             )
+
 
         if data.transaction_code:
             payment.transaction_code = data.transaction_code

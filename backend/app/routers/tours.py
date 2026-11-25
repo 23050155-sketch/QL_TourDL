@@ -30,6 +30,25 @@ from typing import Literal
 
 
 
+from app.core.validation import (
+    MAX_SEARCH_LENGTH,
+    MAX_PROVINCE_LENGTH,
+    MAX_TOUR_DURATION_DAYS,
+    MAX_TOUR_PRICE,
+    MAX_PAGE_SIZE,
+    MAX_PAGE_NUMBER,
+)
+
+from app.core.search_validation import (
+    normalize_search_keyword,
+    validate_price_range,
+    validate_pagination,
+    calculate_total_pages,
+)
+
+
+
+
 
 
 router = APIRouter(
@@ -60,6 +79,7 @@ def get_all_tours(
 
 
 # Tìm kiếm, lọc và phân trang Tour
+
 @router.get(
     "/search",
     response_model=TourSearchResponse
@@ -67,23 +87,26 @@ def get_all_tours(
 def search_tours(
     search: str | None = Query(
         default=None,
-        max_length=255
+        max_length=MAX_SEARCH_LENGTH
     ),
     min_price: Decimal | None = Query(
         default=None,
-        ge=0
+        ge=0,
+        le=MAX_TOUR_PRICE
     ),
     max_price: Decimal | None = Query(
         default=None,
-        ge=0
+        ge=0,
+        le=MAX_TOUR_PRICE
     ),
     duration_days: int | None = Query(
         default=None,
-        ge=1
+        ge=1,
+        le=MAX_TOUR_DURATION_DAYS
     ),
     province: str | None = Query(
         default=None,
-        max_length=150
+        max_length=MAX_PROVINCE_LENGTH
     ),
     sort_by: Literal[
         "newest",
@@ -93,34 +116,49 @@ def search_tours(
         "duration_asc",
         "duration_desc"
     ] = "newest",
-    page: int = Query(default=1, ge=1),
+    page: int = Query(
+        default=1,
+        ge=1,
+        le=MAX_PAGE_NUMBER
+    ),
     page_size: int = Query(
         default=12,
         ge=1,
-        le=100
+        le=MAX_PAGE_SIZE
     ),
     db: Session = Depends(get_db)
 ):
-    # 1. Kiểm tra khoảng giá
-    if (
-        min_price is not None
-        and max_price is not None
-        and min_price > max_price
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="Giá thấp nhất không được lớn hơn giá cao nhất"
-        )
+
+    # 1. Kiểm tra phân trang
+    offset = validate_pagination(
+        page,
+        page_size
+    )
+
+    # Kiểm tra và chuẩn hóa tham số tìm kiếm
+    min_price, max_price = validate_price_range(
+        min_price,
+        max_price,
+    )
+
+    keyword = normalize_search_keyword(
+        search,
+        max_length=MAX_SEARCH_LENGTH
+    )
+
+    province_keyword = normalize_search_keyword(
+        province,
+        max_length=MAX_PROVINCE_LENGTH
+    )
 
     # 2. Chỉ lấy Tour đang hoạt động
     query = db.query(Tour).filter(
         Tour.status == "active"
     )
 
+    
     # 3. Tìm kiếm theo tên và mô tả Tour
-    if search and search.strip():
-        keyword = search.strip()
-
+    if keyword is not None:
         query = query.filter(
             or_(
                 Tour.title.contains(
@@ -133,6 +171,7 @@ def search_tours(
                 )
             )
         )
+
 
     # 4. Lọc theo khoảng giá
     if min_price is not None:
@@ -151,9 +190,9 @@ def search_tours(
             Tour.duration_days == duration_days
         )
 
+    
     # 6. Lọc theo tỉnh/thành phố
-    if province and province.strip():
-        province_keyword = province.strip()
+    if province_keyword is not None:
 
         destination_tour_ids = (
             select(TourDestination.tour_id)
@@ -174,12 +213,14 @@ def search_tours(
             Tour.id.in_(destination_tour_ids)
         )
 
+
     # 7. Đếm tổng số Tour sau khi lọc
     total = query.count()
 
-    total_pages = (
-        total + page_size - 1
-    ) // page_size
+    total_pages = calculate_total_pages(
+        total,
+        page_size
+    )
 
     # 8. Truy vấn thống kê đánh giá
     review_stats = (
@@ -230,8 +271,6 @@ def search_tours(
     )
 
     # 10. Phân trang
-    offset = (page - 1) * page_size
-
     rows = (
         query
         .offset(offset)

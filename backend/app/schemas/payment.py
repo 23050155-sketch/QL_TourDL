@@ -3,11 +3,20 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+)
 
 from app.core.validation import (
     MAX_UNSIGNED_BIGINT,
     MAX_TRANSACTION_CODE_LENGTH,
+)
+
+from app.core.normalization import (
+    normalize_transaction_code,
 )
 
 
@@ -65,3 +74,9 @@ class PaymentConfirm(BaseModel):
     model_config = ConfigDict(
         extra="forbid"
     )
+
+    # Chuẩn hóa mã giao dịch
+    @field_validator("transaction_code", mode="before")
+    @classmethod
+    def normalize_transaction_code_input(cls, value):
+        return normalize_transaction_code(value)

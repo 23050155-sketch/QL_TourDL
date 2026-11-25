@@ -1,3 +1,4 @@
+from decimal import Decimal
 
 # Giới hạn kiểu dữ liệu MySQL
 MAX_UNSIGNED_BIGINT = 2**64 - 1
@@ -45,6 +46,18 @@ MAX_REVIEW_COMMENT_LENGTH = 2000
 MAX_TRANSACTION_CODE_LENGTH = 150
 
 
-# Giới hạn tìm kiếm và phân trang
+
+# Giới hạn tìm kiếm
 MAX_SEARCH_LENGTH = 255
+MAX_USER_SEARCH_LENGTH = 150
+
+# Giới hạn phân trang
 MAX_PAGE_SIZE = 100
+MAX_PAGINATION_OFFSET = 10000
+MAX_PAGE_NUMBER = MAX_PAGINATION_OFFSET + 1
+
+# Giới hạn giá tiền DECIMAL(12,2)
+MAX_TOUR_PRICE = Decimal("9999999999.99")
+MAX_PRICE_DIGITS = 12
+MAX_PRICE_DECIMAL_PLACES = 2
+
