@@ -27,3 +27,7 @@ htmlcov/
 # Python cache
 *.pyo
 *.pyd
+
+
+# Temporary database testing
+/database/quan_ly_tour_du_lich_test.sql
