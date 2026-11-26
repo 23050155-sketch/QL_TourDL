@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../services/api";
+import api from "../../services/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ function Login() {
       );
 
       navigate("/");
-    } catch (err) {
+    } catch {
       setError("Email hoặc mật khẩu không chính xác.");
     } finally {
       setLoading(false);

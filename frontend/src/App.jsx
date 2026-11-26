@@ -1,12 +1,17 @@
-
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Header from "./components/Header";
-import Home from "./pages/Home";
-import Tours from "./pages/Tours";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+// Import Component Customer
+import Header from "./components/customer/Header";
 
+// Import các trang Customer
+import Home from "./pages/customer/home/Home";
+import Tours from "./pages/customer/tours/Tours";
+
+// Import các trang xác thực
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+
+// Import CSS
 import "./App.css";
 
 function App() {

@@ -1,10 +1,23 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { Toaster } from "sonner";
 
-createRoot(document.getElementById('root')).render(
+import "./index.css";
+import App from "./App.jsx";
+
+createRoot(document.getElementById("root")).render(
   <StrictMode>
     <App />
-  </StrictMode>,
-)
+
+    {/* Hệ thống thông báo dùng chung */}
+    <Toaster
+      position="top-right"
+      richColors
+      closeButton
+      duration={4000}
+      visibleToasts={3}
+      theme="light"
+      expand={false}
+    />
+  </StrictMode>
+);

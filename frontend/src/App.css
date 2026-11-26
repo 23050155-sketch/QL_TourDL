@@ -1,16 +1,3 @@
-
-* {
-  box-sizing: border-box;
-}
-
-/* Thiết lập giao diện chung */
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  color: #1e293b;
-  background: #f8fafc;
-}
-
 /* Header và thanh điều hướng */
 .header {
   height: 76px;
@@ -78,8 +65,11 @@ body {
 }
 
 .hero h1 {
+  color: white;
   font-size: clamp(32px, 5vw, 54px);
-  margin-bottom: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 20px;
 }
 
 .hero p {
