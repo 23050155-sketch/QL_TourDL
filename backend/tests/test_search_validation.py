@@ -208,56 +208,52 @@ class TestSearchNormalization(SearchValidationTestCase):
 class TestPriceRangeValidation(SearchValidationTestCase):
 
     def test_no_price_filter(self):
-        self.assertIsNone(
-            validate_price_range(None, None)
+        result = validate_price_range(None, None)
+        self.assertEqual(
+            result,
+            (None, None)
         )
 
     def test_minimum_price_only(self):
-        self.assertIsNone(
-            validate_price_range(
-                Decimal("1000000"),
-                None
-            )
+        result = validate_price_range(Decimal('1000000'), None)
+        self.assertEqual(
+            result,
+            (Decimal("1000000.00"), None)
         )
 
     def test_maximum_price_only(self):
-        self.assertIsNone(
-            validate_price_range(
-                None,
-                Decimal("5000000")
-            )
+        result = validate_price_range(None, Decimal('5000000'))
+        self.assertEqual(
+            result,
+            (None, Decimal("5000000.00"))
         )
 
     def test_valid_price_range(self):
-        self.assertIsNone(
-            validate_price_range(
-                Decimal("1000000"),
-                Decimal("5000000")
-            )
+        result = validate_price_range(Decimal('1000000'), Decimal('5000000'))
+        self.assertEqual(
+            result,
+            (Decimal("1000000.00"), Decimal("5000000.00"))
         )
 
     def test_equal_prices(self):
-        self.assertIsNone(
-            validate_price_range(
-                Decimal("1000000"),
-                Decimal("1000000")
-            )
+        result = validate_price_range(Decimal('1000000'), Decimal('1000000'))
+        self.assertEqual(
+            result,
+            (Decimal("1000000.00"), Decimal("1000000.00"))
         )
 
     def test_zero_price(self):
-        self.assertIsNone(
-            validate_price_range(
-                Decimal("0"),
-                Decimal("0")
-            )
+        result = validate_price_range(Decimal('0'), Decimal('0'))
+        self.assertEqual(
+            result,
+            (Decimal("0.00"), Decimal("0.00"))
         )
 
     def test_maximum_allowed_price(self):
-        self.assertIsNone(
-            validate_price_range(
-                Decimal("0"),
-                MAX_TOUR_PRICE
-            )
+        result = validate_price_range(Decimal('0'), MAX_TOUR_PRICE)
+        self.assertEqual(
+            result,
+            (Decimal("0.00"), MAX_TOUR_PRICE)
         )
 
     def test_reversed_price_range(self):
@@ -293,20 +289,20 @@ class TestPriceRangeValidation(SearchValidationTestCase):
         )
 
     def test_two_decimal_places(self):
-        self.assertIsNone(
-            validate_price_range(
-                Decimal("100.12"),
-                None
-            )
+        result = validate_price_range(Decimal('100.12'), None)
+        self.assertEqual(
+            result,
+            (Decimal("100.12"), None)
         )
+        self.assertEqual(result[0].as_tuple().exponent, -2)
 
     def test_trailing_decimal_zeros(self):
-        self.assertIsNone(
-            validate_price_range(
-                Decimal("100.1200"),
-                None
-            )
+        result = validate_price_range(Decimal('100.1200'), None)
+        self.assertEqual(
+            result,
+            (Decimal("100.12"), None)
         )
+        self.assertEqual(result[0].as_tuple().exponent, -2)
 
     def test_invalid_decimal_places(self):
         self.assert_http_error(

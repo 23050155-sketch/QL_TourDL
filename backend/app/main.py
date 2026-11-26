@@ -30,6 +30,13 @@ from app.routers import users
 from app.core.config import settings
 
 
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.core.database_errors import (
+    database_exception_handler
+)
+
+
 # Khởi tạo ứng dụng FastAPI
 app = FastAPI(
     title="HTTT16 - Quan Ly Tour Du Lich",
@@ -37,6 +44,13 @@ app = FastAPI(
     description="RESTful API cho he thong quan ly tour du lich noi dia"
 )
 
+
+
+# Xử lý lỗi Database dùng chung
+app.add_exception_handler(
+    SQLAlchemyError,
+    database_exception_handler,
+)
 
 
 # Bổ sung HTTP Security Headers
@@ -59,6 +73,7 @@ async def add_security_headers(
 
 
 
+
 # Xử lý lỗi kiểm tra dữ liệu đầu vào
 # Không trả về dữ liệu nhạy cảm trong phản hồi lỗi
 @app.exception_handler(RequestValidationError)
@@ -70,8 +85,19 @@ async def validation_exception_handler(
 
     for error in exc.errors():
 
+        # Chuẩn hóa vị trí lỗi để đảm bảo JSON hợp lệ
+        safe_loc = [
+            part.encode(
+                "utf-8",
+                errors="backslashreplace"
+            ).decode("utf-8")
+            if isinstance(part, str)
+            else part
+            for part in error.get("loc", [])
+        ]
+
         errors.append({
-            "loc": error.get("loc", []),
+            "loc": safe_loc,
             "msg": "Dữ liệu đầu vào không hợp lệ",
             "type": error.get("type", "validation_error")
         })
@@ -85,22 +111,38 @@ async def validation_exception_handler(
 
 
 
+
+
 # Cấu hình CORS để ReactJS truy cập Backend
 app.add_middleware(
     CORSMiddleware,
 
-    # Địa chỉ Frontend Vite
+    # Chỉ cho phép các Origin đã cấu hình
     allow_origins=settings.CORS_ORIGINS,
 
-    # Cho phép gửi thông tin xác thực khi cần
-    allow_credentials=True,
+    # Sử dụng Bearer JWT, không dùng Cookie xác thực
+    allow_credentials=False,
 
-    # Cho phép các phương thức GET, POST, PUT, DELETE...
-    allow_methods=["*"],
+    # Chỉ cho phép các phương thức cần thiết
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS",
+    ],
 
-    # Cho phép gửi các HTTP header, bao gồm Authorization
-    allow_headers=["*"]
+    # Chỉ cho phép các Header cần thiết
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+    ],
+
+    # Cache kết quả Preflight trong 10 phút
+    max_age=600,
 )
+
 
 
 # Đăng ký các API quản lý tour

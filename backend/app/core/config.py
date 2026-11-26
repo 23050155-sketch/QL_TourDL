@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from urllib.parse import urlsplit
 
 
 # Xác định thư mục gốc Backend
@@ -65,11 +66,47 @@ class Settings:
                 "DB_PORT khong hop le"
             )
 
+        
         # Kiểm tra cấu hình CORS
         if not self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
             raise RuntimeError(
                 "CORS_ORIGINS khong hop le"
             )
+
+        # Kiểm tra từng Origin
+        for origin in self.CORS_ORIGINS:
+
+            try:
+                parsed = urlsplit(origin)
+
+                if (
+                    parsed.scheme not in ("http", "https")
+                    or not parsed.hostname
+                    or parsed.username is not None
+                    or parsed.password is not None
+                    or parsed.path
+                    or parsed.query
+                    or parsed.fragment
+                    or "*" in origin
+                    or "\\" in origin
+                    or "?" in origin
+                    or "#" in origin
+                    or any(
+                        char.isspace() or ord(char) < 32
+                        for char in origin
+                    )
+                    or (
+                        parsed.port is not None
+                        and not 1 <= parsed.port <= 65535
+                    )
+                ):
+                    raise ValueError()
+
+            except ValueError:
+                raise RuntimeError(
+                    "CORS_ORIGINS chua Origin khong hop le"
+                ) from None
+
 
 
 # Khởi tạo cấu hình dùng chung

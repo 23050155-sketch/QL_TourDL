@@ -78,6 +78,8 @@ def create_payment(
                 Payment.booking_id == booking.id,
                 Payment.status.in_(["pending", "success"]),
             )
+            .populate_existing()
+            .with_for_update()
             .first()
         )
 
@@ -163,6 +165,7 @@ def admin_get_all_payments(
     )
 
 
+
 # 4. ADMIN xác nhận đã nhận tiền
 @router.patch(
     "/admin/{payment_id}/confirm",
@@ -175,10 +178,44 @@ def admin_confirm_payment(
     admin: User = Depends(require_admin),
 ):
     try:
-        # Khóa Payment trước khi thay đổi trạng thái
+        # 1. Xác định Booking ID, chưa khóa Payment
+        payment_ref = (
+            db.query(Payment.booking_id)
+            .filter(Payment.id == payment_id)
+            .first()
+        )
+
+        if not payment_ref:
+            raise HTTPException(
+                status_code=404,
+                detail="Không tìm thấy thanh toán",
+            )
+
+        booking_id = payment_ref[0]
+
+        # 2. Khóa Booking trước
+        booking = (
+            db.query(Booking)
+            .filter(Booking.id == booking_id)
+            .populate_existing()
+            .with_for_update()
+            .first()
+        )
+
+        if not booking:
+            raise HTTPException(
+                status_code=409,
+                detail="Đơn đặt Tour không còn tồn tại",
+            )
+
+        # 3. Khóa Payment sau
         payment = (
             db.query(Payment)
-            .filter(Payment.id == payment_id)
+            .filter(
+                Payment.id == payment_id,
+                Payment.booking_id == booking.id,
+            )
+            .populate_existing()
             .with_for_update()
             .first()
         )
@@ -189,27 +226,23 @@ def admin_confirm_payment(
                 detail="Không tìm thấy thanh toán",
             )
 
+        # 4. Kiểm tra lại trạng thái sau khi khóa
         if payment.status != "pending":
             raise HTTPException(
                 status_code=409,
                 detail="Thanh toán đã được xử lý",
             )
 
-        booking = (
-            db.query(Booking)
-            .filter(Booking.id == payment.booking_id)
-            .with_for_update()
-            .first()
-        )
-
-        if not booking or booking.status != "awaiting_payment":
+        if booking.status != "awaiting_payment":
             raise HTTPException(
                 status_code=409,
-                detail="Đơn đặt Tour không ở trạng thái chờ thanh toán",
+                detail=(
+                    "Đơn đặt Tour không ở trạng thái "
+                    "chờ thanh toán"
+                ),
             )
 
-        
-        # Kiểm tra tính hợp lệ của số tiền
+        # 5. Kiểm tra tính hợp lệ của số tiền
         try:
             booking_amount = validate_booking_amount(
                 unit_price=booking.unit_price,
@@ -230,7 +263,7 @@ def admin_confirm_payment(
                 ),
             ) from None
 
-        # Đảm bảo số tiền Payment khớp với Booking
+        # 6. Kiểm tra số tiền thanh toán
         if payment_amount != booking_amount:
             raise HTTPException(
                 status_code=409,
@@ -240,18 +273,19 @@ def admin_confirm_payment(
                 ),
             )
 
-
+        # 7. Cập nhật thông tin giao dịch
         if data.transaction_code:
             payment.transaction_code = data.transaction_code
 
         payment.status = "success"
-        payment.paid_at = datetime.now(timezone.utc).replace(
-            tzinfo=None
-        )
+
+        payment.paid_at = datetime.now(
+            timezone.utc
+        ).replace(tzinfo=None)
 
         booking.status = "paid"
 
-        # Lưu cả hai thay đổi trong cùng một transaction
+        # 8. Lưu đồng thời Booking và Payment
         db.commit()
         db.refresh(payment)
 
@@ -260,3 +294,4 @@ def admin_confirm_payment(
     except Exception:
         db.rollback()
         raise
+

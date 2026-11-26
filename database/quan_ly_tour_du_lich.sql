@@ -3,9 +3,13 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th10 17, 2026 lúc 05:23 PM
+-- Thời gian đã tạo: Th10 26, 2026 lúc 08:34 AM
 -- Phiên bản máy phục vụ: 9.3.0
 -- Phiên bản PHP: 8.2.12
+
+CREATE DATABASE IF NOT EXISTS `quan_ly_tour_du_lich`
+  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `quan_ly_tour_du_lich`;
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -36,7 +40,7 @@ CREATE TABLE `bookings` (
   `total_amount` decimal(12,2) NOT NULL,
   `status` enum('pending','awaiting_payment','paid','completed','rejected','cancelled') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -67,13 +71,6 @@ CREATE TABLE `destinations` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Đang đổ dữ liệu cho bảng `destinations`
---
-
-INSERT INTO `destinations` (`id`, `name`, `province`, `description`, `image_url`, `created_at`) VALUES
-(1, 'Đà Lạt', 'Lâm Đồng', 'Thành phố du lịch nổi tiếng', NULL, '2026-11-17 16:17:11');
-
 -- --------------------------------------------------------
 
 --
@@ -102,7 +99,7 @@ CREATE TABLE `payments` (
   `transaction_code` varchar(150) DEFAULT NULL,
   `paid_at` datetime DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -117,7 +114,7 @@ CREATE TABLE `reviews` (
   `rating` int NOT NULL,
   `comment` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -135,14 +132,7 @@ CREATE TABLE `tours` (
   `image_url` varchar(500) DEFAULT NULL,
   `status` enum('active','inactive') NOT NULL DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ;
-
---
--- Đang đổ dữ liệu cho bảng `tours`
---
-
-INSERT INTO `tours` (`id`, `title`, `description`, `duration_days`, `duration_nights`, `base_price`, `image_url`, `status`, `created_at`) VALUES
-(1, 'Khám phá Đà Lạt 3 ngày 2 đêm', 'Tham quan các địa điểm nổi tiếng tại Đà Lạt', 3, 2, 2490000.00, NULL, 'active', '2026-11-17 16:17:12');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -185,7 +175,7 @@ CREATE TABLE `tour_schedules` (
   `return_date` date NOT NULL,
   `capacity` int NOT NULL,
   `status` enum('open','closed','cancelled') NOT NULL DEFAULT 'open'
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -201,6 +191,7 @@ CREATE TABLE `users` (
   `phone` varchar(20) DEFAULT NULL,
   `role` enum('admin','customer') NOT NULL DEFAULT 'customer',
   `status` enum('active','inactive') NOT NULL DEFAULT 'active',
+  `token_version` int UNSIGNED NOT NULL DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -250,7 +241,7 @@ ALTER TABLE `payments`
 --
 ALTER TABLE `reviews`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`),
+  ADD UNIQUE KEY `uq_reviews_user_tour` (`user_id`,`tour_id`),
   ADD KEY `tour_id` (`tour_id`);
 
 --
@@ -307,7 +298,7 @@ ALTER TABLE `booking_passengers`
 -- AUTO_INCREMENT cho bảng `destinations`
 --
 ALTER TABLE `destinations`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT cho bảng `guide_assignments`
