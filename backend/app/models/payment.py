@@ -1,6 +1,7 @@
 
+from sqlalchemy.dialects.mysql import BIGINT
+
 from sqlalchemy import (
-    BigInteger,
     Column,
     DateTime,
     Enum,
@@ -17,13 +18,13 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         primary_key=True,
         autoincrement=True,
     )
 
     booking_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("bookings.id"),
         nullable=False,
     )

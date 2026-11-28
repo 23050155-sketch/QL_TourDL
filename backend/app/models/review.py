@@ -1,6 +1,7 @@
 
+from sqlalchemy.dialects.mysql import BIGINT
+
 from sqlalchemy import (
-    BigInteger,
     Column,
     DateTime,
     ForeignKey,
@@ -25,19 +26,19 @@ class Review(Base):
     )
 
     id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         primary_key=True,
         autoincrement=True
     )
 
     user_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("users.id"),
         nullable=False
     )
 
     tour_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("tours.id"),
         nullable=False
     )

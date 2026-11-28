@@ -20,7 +20,10 @@ DATABASE_URL = URL.create(
 # Khởi tạo SQLAlchemy Engine
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    connect_args={
+        "init_command": "SET SESSION time_zone = '+00:00'"
+    }
 )
 
 

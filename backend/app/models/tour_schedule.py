@@ -1,5 +1,7 @@
 
-from sqlalchemy import BigInteger, Column, Date, Enum, ForeignKey, Integer
+from sqlalchemy.dialects.mysql import BIGINT
+
+from sqlalchemy import Column, Date, Enum, ForeignKey, Integer
 from app.database import Base
 
 
@@ -7,9 +9,9 @@ from app.database import Base
 class TourSchedule(Base):
     __tablename__ = "tour_schedules"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
     tour_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("tours.id"),
         nullable=False
     )

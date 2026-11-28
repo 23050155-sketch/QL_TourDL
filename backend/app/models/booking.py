@@ -1,6 +1,7 @@
 
+from sqlalchemy.dialects.mysql import BIGINT
+
 from sqlalchemy import (
-    BigInteger,
     Column,
     DateTime,
     Enum,
@@ -18,16 +19,16 @@ from app.database import Base
 class Booking(Base):
     __tablename__ = "bookings"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
 
     user_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("users.id"),
         nullable=False,
     )
 
     schedule_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("tour_schedules.id"),
         nullable=False,
     )
@@ -63,10 +64,10 @@ class Booking(Base):
 class BookingPassenger(Base):
     __tablename__ = "booking_passengers"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
 
     booking_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("bookings.id"),
         nullable=False,
     )

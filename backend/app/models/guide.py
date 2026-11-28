@@ -1,6 +1,7 @@
 
+from sqlalchemy.dialects.mysql import BIGINT
+
 from sqlalchemy import (
-    BigInteger,
     Column,
     DateTime,
     ForeignKey,
@@ -17,7 +18,7 @@ class TourGuide(Base):
     __tablename__ = "tour_guides"
 
     id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         primary_key=True,
         autoincrement=True
     )
@@ -55,19 +56,19 @@ class GuideAssignment(Base):
     __tablename__ = "guide_assignments"
 
     id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         primary_key=True,
         autoincrement=True
     )
 
     schedule_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("tour_schedules.id"),
         nullable=False
     )
 
     guide_id = Column(
-        BigInteger,
+        BIGINT(unsigned=True),
         ForeignKey("tour_guides.id"),
         nullable=False
     )

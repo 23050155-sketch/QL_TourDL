@@ -960,6 +960,9 @@ def main():
         engine.url.set(database=args.database),
         pool_pre_ping=True,
         hide_parameters=True,
+        connect_args={
+            "init_command": "SET SESSION time_zone = '+00:00'"
+        },
     )
 
     try:
